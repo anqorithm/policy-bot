@@ -16,12 +16,15 @@ package predicate
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/palantir/policy-bot/policy/common"
 	"github.com/palantir/policy-bot/pull"
 	"github.com/palantir/policy-bot/pull/pulltest"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v2"
 )
 
 func TestHasValidSignatures(t *testing.T) {
@@ -344,6 +347,41 @@ func TestHasValidSignaturesByKeys(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestHasValidSignaturesByKeysFingerprints(t *testing.T) {
+	gpg := &pull.Signature{Type: pull.SignatureGpg, IsValid: true, KeyID: "gpg-key"}
+	ssh := &pull.Signature{Type: pull.SignatureSSH, IsValid: true, KeyFingerprint: "ssh-key"}
+	tests := map[string]struct {
+		Signatures []*pull.Signature
+		Satisfied  bool
+	}{
+		"allowed SSH":                         {[]*pull.Signature{ssh}, true},
+		"allowed GPG":                         {[]*pull.Signature{gpg}, true},
+		"mixed allowed signatures":            {[]*pull.Signature{gpg, ssh}, true},
+		"unlisted SSH":                        {[]*pull.Signature{{Type: pull.SignatureSSH, IsValid: true, KeyFingerprint: "other"}}, false},
+		"GPG ID cannot match SSH fingerprint": {[]*pull.Signature{{Type: pull.SignatureGpg, IsValid: true, KeyID: "ssh-key"}}, false},
+		"SSH fingerprint cannot match GPG ID": {[]*pull.Signature{{Type: pull.SignatureSSH, IsValid: true, KeyFingerprint: "gpg-key"}}, false},
+		"invalid SSH":                         {[]*pull.Signature{{Type: pull.SignatureSSH, KeyFingerprint: "ssh-key", State: "INVALID"}}, false},
+		"mixed with invalid signature":        {[]*pull.Signature{gpg, {Type: pull.SignatureSSH, KeyFingerprint: "ssh-key", State: "INVALID"}}, false},
+		"unsupported signature":               {[]*pull.Signature{{Type: pull.SignatureSmime, IsValid: true}}, false},
+		"unsigned commit":                     {[]*pull.Signature{nil}, false},
+	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			var pred HasValidSignaturesByKeys
+			require.NoError(t, yaml.Unmarshal([]byte("key_ids: [gpg-key]\nkey_fingerprints: [ssh-key]"), &pred))
+			prctx := &pulltest.Context{}
+			for i, signature := range tt.Signatures {
+				prctx.CommitsValue = append(prctx.CommitsValue, &pull.Commit{SHA: fmt.Sprintf("commit%d", i), Signature: signature})
+			}
+			result, err := pred.Evaluate(context.Background(), prctx)
+			require.NoError(t, err)
+			assert.Equal(t, tt.Satisfied, result.Satisfied)
+			assert.Equal(t, []string{"gpg-key", "ssh-key"}, result.ConditionValues)
+			assert.Equal(t, []string{"gpg-key"}, pred.KeyIDs)
+		})
+	}
 }
 
 type SignatureTestCase struct {

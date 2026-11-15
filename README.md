@@ -525,9 +525,11 @@ if:
 
   # "has_valid_signatures_by_keys" is satisfied if the commits in the pull request
   # all have git commit signatures that have been verified by GitHub, and
-  # the authenticated signatures are attributed to a GPG key with an ID in the list.
+  # the authenticated signatures are attributed to a GPG key with an ID in key_ids
+  # or an SSH key with a fingerprint in key_fingerprints.
   has_valid_signatures_by_keys:
     key_ids: ["3AA5C34371567BD2"]
+    key_fingerprints: ["SHA256:exampleFingerprint"]
 
   # "custom_property_is_not_null" is satisfied if all of the specified repository
   # custom properties are set to a non-empty string or array on the target repository.

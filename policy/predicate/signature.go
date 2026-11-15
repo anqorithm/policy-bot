@@ -137,7 +137,8 @@ func (pred *HasValidSignaturesBy) Trigger() common.Trigger {
 }
 
 type HasValidSignaturesByKeys struct {
-	KeyIDs []string `yaml:"key_ids,omitempty"`
+	KeyIDs          []string `yaml:"key_ids,omitempty"`
+	KeyFingerprints []string `yaml:"key_fingerprints,omitempty"`
 }
 
 var _ Predicate = &HasValidSignaturesByKeys{}
@@ -147,14 +148,12 @@ func (pred *HasValidSignaturesByKeys) Evaluate(ctx context.Context, prctx pull.C
 
 	predicateResult := common.PredicateResult{
 		ConditionPhrase: "have valid signatures by keys",
-		ConditionValues: pred.KeyIDs,
+		ConditionValues: append(slices.Clone(pred.KeyIDs), pred.KeyFingerprints...),
 	}
 
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get commits")
 	}
-
-	keys := make(map[string][]string)
 
 	var commitHashes []string
 
@@ -168,27 +167,23 @@ func (pred *HasValidSignaturesByKeys) Evaluate(ctx context.Context, prctx pull.C
 			return &predicateResult, nil
 		}
 		commitHashes = append(commitHashes, c.SHA)
-		// Only GPG signatures are valid for this predicate
+		var key string
+		var allowedKeys []string
 		switch c.Signature.Type {
 		case pull.SignatureGpg:
-			commitSHAs, ok := keys[c.Signature.KeyID]
-			if ok {
-				keys[c.Signature.KeyID] = append(commitSHAs, c.SHA)
-			} else {
-				keys[c.Signature.KeyID] = []string{c.SHA}
-			}
+			key, allowedKeys = c.Signature.KeyID, pred.KeyIDs
+		case pull.SignatureSSH:
+			key, allowedKeys = c.Signature.KeyFingerprint, pred.KeyFingerprints
 		default:
 			predicateResult.Values = []string{c.SHA}
 			predicateResult.ValuePhrase = "commits"
-			predicateResult.ConditionPhrase = "have GPG signatures"
-			predicateResult.Description = fmt.Sprintf("Commit %.10s signature is not a GPG signature", c.SHA)
+			predicateResult.ConditionPhrase = "have GPG or SSH signatures"
+			predicateResult.Description = fmt.Sprintf("Commit %.10s signature is not a GPG or SSH signature", c.SHA)
 			predicateResult.Satisfied = false
 			return &predicateResult, nil
 		}
-	}
 
-	for key := range keys {
-		isValidKey := slices.Contains(pred.KeyIDs, key)
+		isValidKey := slices.Contains(allowedKeys, key)
 		if !isValidKey {
 			predicateResult.ConditionPhrase = "exist in the set of allowed keys"
 			predicateResult.Values = []string{key}
