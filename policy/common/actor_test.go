@@ -15,7 +15,6 @@
 package common
 
 import (
-	"context"
 	"testing"
 
 	"github.com/palantir/policy-bot/pull"
@@ -25,7 +24,6 @@ import (
 )
 
 func TestIsActor(t *testing.T) {
-	ctx := context.Background()
 	prctx := &pulltest.Context{
 		TeamMemberships: map[string][]string{
 			"mhaypenny": {"cool-org/team1", "regular-org/team2"},
@@ -50,13 +48,13 @@ func TestIsActor(t *testing.T) {
 	}
 
 	assertActor := func(t *testing.T, a *Actors, user string) {
-		isActor, err := a.IsActor(ctx, prctx, user)
+		isActor, err := a.IsActor(prctx, user)
 		require.NoError(t, err)
 		assert.Truef(t, isActor, "%s is not an actor", user)
 	}
 
 	assertNotActor := func(t *testing.T, a *Actors, user string) {
-		isActor, err := a.IsActor(ctx, prctx, user)
+		isActor, err := a.IsActor(prctx, user)
 		require.NoError(t, err)
 		assert.Falsef(t, isActor, "%s is an actor", user)
 	}

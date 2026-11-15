@@ -112,7 +112,7 @@ func (pred *HasValidSignaturesBy) Evaluate(ctx context.Context, prctx pull.Conte
 
 	for signer := range signers {
 		signerList = append(signerList, signer)
-		member, err := pred.IsActor(ctx, prctx, signer)
+		member, err := pred.IsActor(prctx, signer)
 		if err != nil {
 			return nil, err
 		}

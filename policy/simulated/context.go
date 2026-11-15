@@ -15,18 +15,15 @@
 package simulated
 
 import (
-	"context"
-
 	"github.com/palantir/policy-bot/pull"
 )
 
 type Context struct {
 	pull.Context
-	ctx     context.Context
 	options Options
 }
 
-func NewContext(ctx context.Context, pullContext pull.Context, options Options) *Context {
+func NewContext(pullContext pull.Context, options Options) *Context {
 	return &Context{Context: pullContext, options: options}
 }
 
@@ -52,7 +49,7 @@ func (c *Context) filterIgnoredComments(prCtx pull.Context, comments []*pull.Com
 
 	var filteredComments []*pull.Comment
 	for _, comment := range comments {
-		isActor, err := c.options.IgnoreComments.IsActor(c.ctx, prCtx, comment.Author)
+		isActor, err := c.options.IgnoreComments.IsActor(prCtx, comment.Author)
 		if err != nil {
 			return nil, err
 		}
@@ -98,7 +95,7 @@ func (c *Context) filterIgnoredReviews(prCtx pull.Context, reviews []*pull.Revie
 
 	var filteredReviews []*pull.Review
 	for _, review := range reviews {
-		isActor, err := c.options.IgnoreReviews.IsActor(c.ctx, prCtx, review.Author)
+		isActor, err := c.options.IgnoreReviews.IsActor(prCtx, review.Author)
 		if err != nil {
 			return nil, err
 		}

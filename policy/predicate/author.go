@@ -33,7 +33,7 @@ var _ Predicate = &HasAuthorIn{}
 func (pred *HasAuthorIn) Evaluate(ctx context.Context, prctx pull.Context) (*common.PredicateResult, error) {
 	author := prctx.Author()
 
-	result, err := pred.IsActor(ctx, prctx, author)
+	result, err := pred.IsActor(prctx, author)
 	desc := ""
 	if !result {
 		desc = fmt.Sprintf("The pull request author %q does not meet the required membership conditions", author)
@@ -97,7 +97,7 @@ func (pred *OnlyHasContributorsIn) Evaluate(ctx context.Context, prctx pull.Cont
 	sort.Strings(userList)
 
 	for _, user := range userList {
-		member, err := pred.IsActor(ctx, prctx, user)
+		member, err := pred.IsActor(prctx, user)
 		if err != nil {
 			return nil, err
 		}
@@ -156,7 +156,7 @@ func (pred *HasContributorIn) Evaluate(ctx context.Context, prctx pull.Context) 
 	sort.Strings(userList)
 
 	for _, user := range userList {
-		member, err := pred.IsActor(ctx, prctx, user)
+		member, err := pred.IsActor(prctx, user)
 		if err != nil {
 			return nil, err
 		}

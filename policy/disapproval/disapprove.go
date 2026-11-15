@@ -235,7 +235,7 @@ func (p *Policy) filter(ctx context.Context, prctx pull.Context, candidates []*c
 
 	var filtered []*common.Candidate
 	for _, c := range candidates {
-		ok, err := p.Requires.IsActor(ctx, prctx, c.User)
+		ok, err := p.Requires.IsActor(prctx, c.User)
 		if err != nil {
 			return nil, errors.WithMessage(err, "failed to check candidate status")
 		}

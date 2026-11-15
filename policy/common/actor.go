@@ -15,7 +15,6 @@
 package common
 
 import (
-	"context"
 	"slices"
 	"sort"
 
@@ -73,7 +72,7 @@ func (a *Actors) GetPermissions() []pull.Permission {
 
 // IsActor returns true if the given user satisfies at least one of the
 // conditions in this structure.
-func (a *Actors) IsActor(ctx context.Context, prctx pull.Context, user string) (bool, error) {
+func (a *Actors) IsActor(prctx pull.Context, user string) (bool, error) {
 	if slices.Contains(a.Users, user) {
 		return true, nil
 	}

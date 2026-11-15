@@ -200,7 +200,7 @@ func (r *Rule) isApprovedByActors(ctx context.Context, prctx pull.Context, candi
 
 	// "contributor" is any user who added a commit to the PR
 	if !r.Options.IsAllowContributor() && !r.Options.IsAllowNonAuthorContributor() {
-		commits, err := r.filteredCommits(ctx, prctx)
+		commits, err := r.filteredCommits(prctx)
 		if err != nil {
 			return false, nil, err
 		}
@@ -222,7 +222,7 @@ func (r *Rule) isApprovedByActors(ctx context.Context, prctx pull.Context, candi
 			continue
 		}
 
-		isApprover, err := r.Requires.Actors.IsActor(ctx, prctx, c.User)
+		isApprover, err := r.Requires.Actors.IsActor(prctx, c.User)
 		if err != nil {
 			return false, nil, errors.Wrap(err, "failed to check candidate status")
 		}
@@ -330,7 +330,7 @@ func (r *Rule) filterEditedCandidates(ctx context.Context, prctx pull.Context, c
 func (r *Rule) filterInvalidCandidates(ctx context.Context, prctx pull.Context, candidates []*common.Candidate) ([]*common.Candidate, []*common.Dismissal, error) {
 	log := zerolog.Ctx(ctx)
 
-	commits, err := r.filteredCommits(ctx, prctx)
+	commits, err := r.filteredCommits(prctx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -367,7 +367,7 @@ func (r *Rule) filterInvalidCandidates(ctx context.Context, prctx pull.Context, 
 
 // filteredCommits returns the relevant commits for the evaluation ordered in
 // history order, from most to least recent.
-func (r *Rule) filteredCommits(ctx context.Context, prctx pull.Context) ([]*pull.Commit, error) {
+func (r *Rule) filteredCommits(prctx pull.Context) ([]*pull.Commit, error) {
 	commits, err := prctx.Commits()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to list commits")
@@ -391,7 +391,7 @@ func (r *Rule) filteredCommits(ctx context.Context, prctx pull.Context) ([]*pull
 		}
 
 		if ignoreCommits {
-			ignore, err := isIgnoredCommit(ctx, prctx, &ignoreCommitsBy, c)
+			ignore, err := isIgnoredCommit(prctx, &ignoreCommitsBy, c)
 			if err != nil {
 				return nil, err
 			}
@@ -477,9 +477,9 @@ func isUpdateMerge(commits []*pull.Commit, c *pull.Commit) bool {
 	return shas[c.Parents[0]] && !shas[c.Parents[1]]
 }
 
-func isIgnoredCommit(ctx context.Context, prctx pull.Context, actors *common.Actors, c *pull.Commit) (bool, error) {
+func isIgnoredCommit(prctx pull.Context, actors *common.Actors, c *pull.Commit) (bool, error) {
 	for _, u := range c.Users() {
-		ignored, err := actors.IsActor(ctx, prctx, u)
+		ignored, err := actors.IsActor(prctx, u)
 		if err != nil {
 			return false, err
 		}
